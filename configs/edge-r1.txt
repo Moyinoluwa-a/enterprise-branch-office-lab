@@ -1,0 +1,47 @@
+hostname EDGE-R1
+no ip domain-lookup
+service password-encryption
+enable secret cisco
+line console 0
+password cisco
+login
+line vty 0 4
+password cisco
+login
+
+interface GigabitEthernet0/0
+description ## LINK TO HEADQUARTERS - PRIMARY WAN ##
+ip address 10.0.100.2 255.255.255.252
+no shutdown
+
+interface GigabitEthernet0/1
+description ## LINK TO EDGE-R2 ##
+ip address 10.0.100.9 255.255.255.252
+no shutdown
+
+interface GigabitEthernet0/2
+description ## LINK TO DIST-SW1 ##
+ip address 10.1.1.1 255.255.255.0
+no shutdown
+
+! Primary route to HQ
+ip route 0.0.0.0 0.0.0.0 10.0.100.1
+! Floating static route through EDGE-R2 (higher administrative distance)
+ip route 0.0.0.0 0.0.0.0 10.1.1.2 10
+
+router ospf 1
+router-id 1.1.1.1
+network 10.1.1.0 0.0.0.255 area 0
+network 10.0.100.0 0.0.0.3 area 0
+network 10.0.100.8 0.0.0.3 area 0
+default-information originate
+passive-interface GigabitEthernet0/0
+
+interface GigabitEthernet0/1
+ip ospf network point-to-point
+ip ospf authentication
+ip ospf message-digest-key 1 md5 cisco
+
+interface GigabitEthernet0/2
+ip ospf authentication
+ip ospf message-digest-key 1 md5 cisco
