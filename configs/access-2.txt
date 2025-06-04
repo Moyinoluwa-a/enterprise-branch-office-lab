@@ -1,0 +1,32 @@
+hostname ACC-2
+
+! Create VLANs
+vlan 10
+name SALES
+vlan 20
+name ADMIN
+vlan 30
+name IT
+
+! Trunk to DIST-SW2
+interface GigabitEthernet0/0
+description ## TRUNK TO DIST-SW2 ##
+switchport trunk encapsulation dot1q
+switchport mode trunk
+switchport trunk allowed vlan 10,20,30
+no shutdown
+
+! Trunk to DIST-SW1
+interface GigabitEthernet0/1
+description ## TRUNK TO DIST-SW1 ##
+switchport trunk encapsulation dot1q
+switchport mode trunk
+switchport trunk allowed vlan 10,20,30
+no shutdown
+
+! Access port for IT host
+interface GigabitEthernet0/2
+description ## IT-HOST ##
+switchport mode access
+switchport access vlan 30
+no shutdown
