@@ -1,0 +1,98 @@
+hostname DIST-SW1
+no ip domain-lookup
+service password-encryption
+enable secret cisco
+line console 0
+password cisco
+login
+line vty 0 4
+password cisco
+login
+
+! Enable IP routing for L3 functionality
+ip routing
+
+! Create VLANs
+vlan 10
+name SALES
+vlan 20
+name ADMIN
+vlan 30
+name IT
+
+! L3 Interface to EDGE-R1
+interface GigabitEthernet0/0
+description ## LINK TO EDGE-R1 ##
+no switchport
+ip address 10.1.1.2 255.255.255.0
+no shutdown
+
+! L3 Interface to DIST-SW2
+interface GigabitEthernet0/1
+description ## LINK TO DIST-SW2 ##
+no switchport 
+ip address 10.1.3.1 255.255.255.0
+no shutdown
+
+! Trunk to ACC-1
+interface GigabitEthernet0/2
+description ## TRUNK TO ACC-1 ##
+switchport trunk encapsulation dot1q
+switchport mode trunk
+switchport trunk allowed vlan 10,20,30
+no shutdown
+
+! Trunk to ACC-2
+interface GigabitEthernet0/3
+description ## TRUNK TO ACC-2 ##
+switchport trunk encapsulation dot1q
+switchport mode trunk
+switchport trunk allowed vlan 10,20,30
+no shutdown
+
+! VLAN Interfaces with HSRP
+interface Vlan10
+description ## SALES VLAN - HSRP PRIMARY ##
+ip address 192.168.10.2 255.255.255.0
+standby 10 ip 192.168.10.1
+standby 10 priority 110
+standby 10 preempt
+no shutdown
+
+interface Vlan20
+description ## ADMIN VLAN - HSRP PRIMARY ##
+ip address 192.168.20.2 255.255.255.0
+standby 20 ip 192.168.20.1
+standby 20 priority 110
+standby 20 preempt
+no shutdown
+
+interface Vlan30
+description ## IT VLAN - HSRP BACKUP ##
+ip address 192.168.30.2 255.255.255.0
+standby 30 ip 192.168.30.1
+standby 30 priority 90
+no shutdown
+
+! OSPF Configuration
+router ospf 1
+router-id 3.3.3.3
+network 10.1.1.0 0.0.0.255 area 0
+network 10.1.3.0 0.0.0.255 area 0
+network 192.168.10.0 0.0.0.255 area 0
+network 192.168.20.0 0.0.0.255 area 0
+network 192.168.30.0 0.0.0.255 area 0
+
+interface GigabitEthernet0/0
+ip ospf authentication
+ip ospf message-digest-key 1 md5 cisco
+
+! ACL Configurations
+ip access-list extended SALES
+permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+permit icmp 192.168.10.0 0.0.0.255 192.168.30.0 0.0.0.255 echo-reply
+deny ip 192.168.10.0 0.0.0.255 192.168.30.0 0.0.0.255
+permit ip 192.168.10.0 0.0.0.255 any
+
+interface Vlan10
+ip access-group SALES in
